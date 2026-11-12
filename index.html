@@ -1,150 +1,236 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#673AB7">
-    <title>记账统计 - BKS</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        html { font-size: 16px; }
-        body {
-            font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
-            color: #212121;
-            overflow-x: hidden;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>负债记账主页</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            huabei: '#1677ff',
+            fenfu: '#00b42a',
+            credit: '#ff7d00',
+            baitiao: '#f53f3f',
+          }
         }
-        .app-bar {
-            background: #673AB7;
-            color: #fff;
-            padding: 14px 16px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        }
-        .app-bar-title {
-            font-size: 18px;
-            font-weight: 500;
-        }
-        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
-        .card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        .card-title {
-            font-size: 16px;
-            font-weight: 500;
-            color: #212121;
-            margin-bottom: 12px;
-        }
-        .stats-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 8px;
-        }
-        .stat-card {
-            flex: 1;
-            min-width: 100px;
-            text-align: center;
-            padding: 14px 8px;
-            background: #f5f5f5;
-            border-radius: 10px;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #673AB7;
-            margin-bottom: 4px;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: #757575;
-        }
-    </style>
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .card-shadow {
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      }
+      .mask {
+        background: rgba(0,0,0,0.45);
+      }
+    }
+  </style>
 </head>
-<body>
-    <div class="app-bar">
-        <span class="app-bar-title">记账统计</span>
+<body class="bg-gray-100 pb-20">
+  <!-- 顶部导航 -->
+  <header class="bg-white px-4 py-4 flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-800">我的负债记账</h1>
+    <i class="fa fa-bell-o text-gray-500 text-xl"></i>
+  </header>
+
+  <!-- 汇总卡片 -->
+  <div class="mx-4 mt-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-5 text-white card-shadow">
+    <div class="flex justify-between items-center">
+      <div>
+        <p class="text-sm opacity-80">负债合计（元）</p >
+        <p id="totalDebt" class="text-[28px] font-bold mt-1">0.00</p >
+      </div>
+      <div class="text-right">
+        <p class="text-sm opacity-80">本月应还（元）</p >
+        <p id="monthNeedPay" class="text-[28px] font-bold mt-1">0.00</p >
+      </div>
     </div>
-    <div class="container">
-        <!-- 第1行 本月统计 -->
-        <div class="card">
-            <div class="card-title">本月统计</div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">工作天数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">0h</div>
-                    <div class="stat-label">总时长</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">0元</div>
-                    <div class="stat-label">总薪资</div>
-                </div>
-            </div>
+  </div>
+
+  <!-- 负债列表容器 -->
+  <div id="debtList" class="mx-4 mt-5 space-y-3">
+    <!-- JS动态渲染卡片 -->
+  </div>
+
+  <!-- 快捷按钮 -->
+  <div class="mx-4 mt-5 grid grid-cols-2 gap-3">
+    <button id="btnAddDebt" class="bg-blue-500 text-white py-3 rounded-xl font-medium">
+      <i class="fa fa-plus mr-1"></i>新增负债
+    </button>
+    <button class="bg-white text-gray-700 py-3 rounded-xl font-medium border">
+      <i class="fa fa-bar-chart mr-1"></i>统计报表
+    </button>
+  </div>
+
+  <!-- 弹窗遮罩 -->
+  <div id="mask" class="fixed inset-0 mask hidden z-50 flex items-center justify-center px-4">
+    <div class="bg-white w-full max-w-sm rounded-xl p-5">
+      <h3 id="modalTitle" class="text-lg font-bold mb-4">编辑负债</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="text-sm text-gray-600">名称</label>
+          <input id="nameInput" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="花呗">
         </div>
-        <!-- 第2行 本月统计 -->
-        <div class="card">
-            <div class="card-title">本月统计</div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">工作天数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">0h</div>
-                    <div class="stat-label">总时长</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">0元</div>
-                    <div class="stat-label">总薪资</div>
-                </div>
-            </div>
+        <div>
+          <label class="text-sm text-gray-600">待还金额</label>
+          <input id="moneyInput" type="number" step="0.01" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="0.00">
         </div>
-        <!-- 第3行 本月统计 -->
-        <div class="card">
-            <div class="card-title">本月统计</div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">工作天数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">0h</div>
-                    <div class="stat-label">总时长</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">0元</div>
-                    <div class="stat-label">总薪资</div>
-                </div>
-            </div>
+        <div>
+          <label class="text-sm text-gray-600">备注/还款日</label>
+          <input id="remarkInput" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="每月9号">
         </div>
-        <!-- 第4行 本月统计 -->
-        <div class="card">
-            <div class="card-title">本月统计</div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">工作天数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">0h</div>
-                    <div class="stat-label">总时长</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">0元</div>
-                    <div class="stat-label">总薪资</div>
-                </div>
-            </div>
-        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="btnCancel" class="flex-1 py-2 border rounded-lg text-gray-600">取消</button>
+        <button id="btnSave" class="flex-1 py-2 bg-blue-500 text-white rounded-lg">保存</button>
+      </div>
+      <button id="btnDel" class="w-full mt-3 py-2 text-red-500 text-sm">删除此项</button>
     </div>
+  </div>
+
+<script>
+// 默认初始数据
+const defaultData = [
+  {id:1,name:"花呗",money:5620.00,remark:"还款日：每月9号",color:"huabei",icon:"fa-credit-card"},
+  {id:2,name:"分付",money:1240.50,remark:"按日计息",color:"fenfu",icon:"fa-wechat"},
+  {id:3,name:"信用卡",money:4500.00,remark:"还款日：每月25号",color:"credit",icon:"fa-bank"},
+  {id:4,name:"白条",money:1500.00,remark:"还款日：每月20号",color:"baitiao",icon:"fa-shopping-cart"},
+];
+
+// 读取本地存储
+let debtList = JSON.parse(localStorage.getItem("debtData")) || defaultData;
+let currentEditId = null;
+
+// 颜色映射
+const colorMap = {
+  huabei:"#1677ff",fenfu:"#00b42a",credit:"#ff7d00",baitiao:"#f53f3f"
+}
+
+// 渲染列表
+function render(){
+  const wrap = document.getElementById("debtList");
+  wrap.innerHTML = "";
+  let total = 0;
+  debtList.forEach(item=>{
+    total += Number(item.money);
+    const div = document.createElement("div");
+    div.className = "bg-white rounded-xl p-4 card-shadow flex items-center justify-between";
+    div.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:${colorMap[item.color]}15;color:${colorMap[item.color]}">
+          <i class="fa ${item.icon}"></i>
+        </div>
+        <div>
+          <p class="font-medium text-gray-800">${item.name}</p >
+          <p class="text-xs text-gray-400">${item.remark}</p >
+        </div>
+      </div>
+      <div class="text-right">
+        <p class="font-bold" style="color:${colorMap[item.color]}">${Number(item.money).toFixed(2)}</p >
+        <span class="text-xs text-gray-400">待还</span>
+      </div>
+    `
+    div.onclick = ()=> openEdit(item.id);
+    wrap.appendChild(div);
+  })
+  // 更新汇总
+  document.getElementById("totalDebt").innerText = total.toFixed(2);
+  document.getElementById("monthNeedPay").innerText = total.toFixed(2);
+  saveStorage();
+}
+
+// 保存到本地
+function saveStorage(){
+  localStorage.setItem("debtData",JSON.stringify(debtList));
+}
+
+// 打开编辑弹窗
+function openEdit(id){
+  currentEditId = id;
+  const item = debtList.find(x=>x.id === id);
+  document.getElementById("modalTitle").innerText = "编辑负债";
+  document.getElementById("nameInput").value = item.name;
+  document.getElementById("moneyInput").value = item.money;
+  document.getElementById("remarkInput").value = item.remark;
+  document.getElementById("btnDel").classList.remove("hidden");
+  document.getElementById("mask").classList.remove("hidden");
+}
+
+// 打开新增弹窗
+function openAdd(){
+  currentEditId = null;
+  document.getElementById("modalTitle").innerText = "新增账单";
+  document.getElementById("nameInput").value = "";
+  document.getElementById("moneyInput").value = "";
+  document.getElementById("remarkInput").value = "";
+  document.getElementById("btnDel").classList.add("hidden");
+  document.getElementById("mask").classList.remove("hidden");
+}
+
+// 关闭弹窗
+function closeModal(){
+  document.getElementById("mask").classList.add("hidden");
+}
+
+// 保存
+function saveItem(){
+  const name = document.getElementById("nameInput").value.trim();
+  const money = Number(document.getElementById("moneyInput").value);
+  const remark = document.getElementById("remarkInput").value.trim();
+  if(!name || isNaN(money) || money < 0){
+    alert("请填写合法名称和金额");
+    return;
+  }
+  if(currentEditId){
+    // 修改
+    const idx = debtList.findIndex(x=>x.id === currentEditId);
+    debtList[idx].name = name;
+    debtList[idx].money = money;
+    debtList[idx].remark = remark;
+  }else{
+    // 新增，随机颜色
+    const colorArr = ["huabei","fenfu","credit","baitiao"];
+    const iconArr = ["fa-credit-card","fa-wechat","fa-bank","fa-shopping-cart"];
+    const rnd = Math.floor(Math.random()*4);
+    const newId = Date.now();
+    debtList.push({
+      id:newId,
+      name,
+      money,
+      remark,
+      color:colorArr[rnd],
+      icon:iconArr[rnd]
+    })
+  }
+  closeModal();
+  render();
+}
+
+// 删除
+function delItem(){
+  if(!currentEditId) return;
+  if(!confirm("确定删除这条负债？")) return;
+  debtList = debtList.filter(x=>x.id !== currentEditId);
+  closeModal();
+  render();
+}
+
+// 绑定事件
+document.getElementById("btnAddDebt").onclick = openAdd;
+document.getElementById("btnCancel").onclick = closeModal;
+document.getElementById("btnSave").onclick = saveItem;
+document.getElementById("btnDel").onclick = delItem;
+document.getElementById("mask").onclick = (e)=>{
+  if(e.target.id === "mask") closeModal();
+}
+
+// 初始化渲染
+render();
+</script>
 </body>
 </html>
