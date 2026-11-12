@@ -136,14 +136,14 @@ function render(){
           <p class="text-xs text-gray-400">${item.remark}</p >
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-4 items-start">
-        <div class="flex items-center justify-between min-w-[130px]">
+      <div class="grid grid-cols-2 gap-3 items-start">
+        <div class="flex items-center justify-between min-w-[100px]">
           <span class="text-xs text-gray-500">总金额</span>
-          <p class="font-bold tabular-nums text-right w-[64px]" style="color:${colorMap[item.color]}">${Number(item.money).toFixed(2)}</p>
+          <p class="font-bold tabular-nums text-right w-[52px]" style="color:${colorMap[item.color]}">${Number(item.money).toFixed(2)}</p>
         </div>
-        <div class="flex items-center justify-between min-w-[130px]">
+        <div class="flex items-center justify-between min-w-[100px]">
           <span class="text-xs text-gray-400">本月待还</span>
-          <p class="font-bold tabular-nums text-right w-[64px] text-red-600">${Number(item.monthPay || 0).toFixed(2)}</p>
+          <p class="font-bold tabular-nums text-right w-[52px] text-red-600">${Number(item.monthPay || 0).toFixed(2)}</p>
         </div>
       </div>
     `
