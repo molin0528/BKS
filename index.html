@@ -38,14 +38,6 @@
     <i class="fa fa-bell-o text-gray-500 text-xl"></i>
   </header>
 
-  <!-- 汇总卡片 -->
-  <div class="mx-4 mt-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-5 text-white card-shadow">
-    <div class="text-center">
-      <p class="text-sm opacity-80">负债合计（元）</p>
-      <p id="totalDebt" class="text-[32px] font-bold mt-1">0.00</p>
-    </div>
-  </div>
-
   <!-- 下方两栏：总账单 & 本月待还 -->
   <div class="mx-4 mt-6 grid grid-cols-2 gap-4">
     <div class="bg-white rounded-xl p-5 card-shadow text-center border border-gray-200">
@@ -147,7 +139,6 @@ function render(){
     wrap.appendChild(div);
   })
   // 更新汇总
-  document.getElementById("totalDebt").innerText = total.toFixed(2);
   document.getElementById("totalBill").innerText = total.toFixed(2);
   document.getElementById("monthNeedPay").innerText = total.toFixed(2);
   saveStorage();
