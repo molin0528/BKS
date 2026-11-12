@@ -77,8 +77,12 @@
           <input id="nameInput" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="花呗">
         </div>
         <div>
-          <label class="text-sm text-gray-600">待还金额</label>
+          <label class="text-sm text-gray-600">总金额</label>
           <input id="moneyInput" type="number" step="0.01" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="0.00">
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">当月待还</label>
+          <input id="monthPayInput" type="number" step="0.01" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="0.00">
         </div>
         <div>
           <label class="text-sm text-gray-600">备注/还款日</label>
@@ -96,10 +100,10 @@
 <script>
 // 默认初始数据
 const defaultData = [
-  {id:1,name:"花呗",money:5620.00,remark:"还款日：每月9号",color:"huabei",icon:"fa-credit-card"},
-  {id:2,name:"分付",money:1240.50,remark:"按日计息",color:"fenfu",icon:"fa-wechat"},
-  {id:3,name:"信用卡",money:4500.00,remark:"还款日：每月25号",color:"credit",icon:"fa-bank"},
-  {id:4,name:"白条",money:1500.00,remark:"还款日：每月20号",color:"baitiao",icon:"fa-shopping-cart"},
+  {id:1,name:"花呗",money:5620.00,monthPay:0,remark:"还款日：每月9号",color:"huabei",icon:"fa-credit-card"},
+  {id:2,name:"分付",money:1240.50,monthPay:0,remark:"按日计息",color:"fenfu",icon:"fa-wechat"},
+  {id:3,name:"信用卡",money:4500.00,monthPay:0,remark:"还款日：每月25号",color:"credit",icon:"fa-bank"},
+  {id:4,name:"白条",money:1500.00,monthPay:0,remark:"还款日：每月20号",color:"baitiao",icon:"fa-shopping-cart"},
 ];
 
 // 读取本地存储
@@ -156,6 +160,7 @@ function openEdit(id){
   document.getElementById("modalTitle").innerText = "编辑负债";
   document.getElementById("nameInput").value = item.name;
   document.getElementById("moneyInput").value = item.money;
+  document.getElementById("monthPayInput").value = item.monthPay || "";
   document.getElementById("remarkInput").value = item.remark;
   document.getElementById("btnDel").classList.remove("hidden");
   document.getElementById("mask").classList.remove("hidden");
@@ -167,6 +172,7 @@ function openAdd(){
   document.getElementById("modalTitle").innerText = "新增账单";
   document.getElementById("nameInput").value = "";
   document.getElementById("moneyInput").value = "";
+  document.getElementById("monthPayInput").value = "";
   document.getElementById("remarkInput").value = "";
   document.getElementById("btnDel").classList.add("hidden");
   document.getElementById("mask").classList.remove("hidden");
@@ -181,6 +187,7 @@ function closeModal(){
 function saveItem(){
   const name = document.getElementById("nameInput").value.trim();
   const money = Number(document.getElementById("moneyInput").value);
+  const monthPay = Number(document.getElementById("monthPayInput").value);
   const remark = document.getElementById("remarkInput").value.trim();
   if(!name || isNaN(money) || money < 0){
     alert("请填写合法名称和金额");
@@ -191,6 +198,7 @@ function saveItem(){
     const idx = debtList.findIndex(x=>x.id === currentEditId);
     debtList[idx].name = name;
     debtList[idx].money = money;
+    debtList[idx].monthPay = monthPay;
     debtList[idx].remark = remark;
   }else{
     // 新增，随机颜色
@@ -202,6 +210,7 @@ function saveItem(){
       id:newId,
       name,
       money,
+      monthPay,
       remark,
       color:colorArr[rnd],
       icon:iconArr[rnd]
