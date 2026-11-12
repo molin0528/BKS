@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>负债记账主页</title>
+  <title>账单记账</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
   <script>
@@ -15,6 +15,7 @@
             fenfu: '#00b42a',
             credit: '#ff7d00',
             baitiao: '#f53f3f',
+            monthPay: '#e53e3e'
           }
         }
       }
@@ -23,233 +24,321 @@
   <style type="text/tailwindcss">
     @layer utilities {
       .card-shadow {
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
       }
-      .mask {
-        background: rgba(0,0,0,0.45);
+      .item-shadow {
+        box-shadow: 0 1px 8px rgba(0,0,0,0.05);
       }
-    }
-    body {
-      zoom: 0.75;
+      .icon-bg {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
     }
   </style>
 </head>
-<body class="bg-gray-100 pb-10 sm:pb-20 touch-manipulation overflow-x-hidden">
-  <!-- 顶部导航 -->
-  <header class="bg-white px-4 py-4 flex items-center justify-between">
-    <h1 class="text-xl font-bold text-gray-800">我的负债记账</h1>
-    <i class="fa fa-bell-o text-gray-500 text-xl"></i>
+<body class="bg-slate-50 pb-24">
+  <header class="px-4 py-5 flex items-center justify-between">
+    <h1 class="text-[22px] font-bold text-gray-800">账单记账</h1>
+    <i class="fa fa-bell-o text-gray-400 text-xl"></i>
   </header>
 
-  <!-- 下方两栏：总账单 & 本月总待还 -->
-  <div class="mx-4 mt-6 grid grid-cols-2 gap-4">
-    <div class="bg-white rounded-xl p-5 card-shadow text-center border border-gray-200">
-      <p class="text-sm text-gray-500 font-medium">总账单</p>
-      <p id="totalBill" class="text-[28px] font-bold text-gray-800 mt-1">0.00</p>
-      <p class="text-xs text-gray-400 mt-2">所有负债合计金额</p>
+  <!-- 顶部汇总双卡片 -->
+  <div class="px-4 grid grid-cols-2 gap-4">
+    <div class="bg-white rounded-xl p-5 card-shadow text-center">
+      <p class="text-sm text-gray-500">总账单</p>
+      <p id="totalDebt" class="text-[32px] font-bold text-gray-800 mt-1">0.00</p>
+      <p class="text-xs text-gray-400 mt-1">所有账单合计金额</p>
     </div>
-    <div class="bg-white rounded-xl p-5 card-shadow text-center border border-gray-200">
-      <p class="text-sm text-gray-500 font-medium">本月总待还</p>
-      <p id="monthNeedPay" class="text-[28px] font-bold text-gray-800 mt-1">0.00</p>
-      <p class="text-xs text-gray-400 mt-2">本月需偿还金额</p>
+    <div class="bg-white rounded-xl p-5 card-shadow text-center">
+      <p class="text-sm text-gray-500">本月总待还</p>
+      <p id="monthTotalPay" class="text-[32px] font-bold text-monthPay mt-1">0.00</p>
+      <p class="text-xs text-gray-400 mt-1">本月需偿还金额</p>
     </div>
   </div>
 
-  <!-- 负债列表容器 -->
-  <div id="debtList" class="mx-4 mt-5 space-y-3">
-    <!-- JS动态渲染卡片 -->
+  <!-- 账单列表容器 -->
+  <div id="debtList" class="px-4 mt-5 space-y-3">
   </div>
 
-  <!-- 快捷按钮 -->
-  <div class="mx-4 mt-5 grid grid-cols-2 gap-3">
-    <button id="btnAddDebt" class="bg-blue-500 text-white py-3 rounded-xl font-medium">
-      <i class="fa fa-plus mr-1"></i>新增负债
+  <!-- 底部按钮 -->
+  <div class="px-4 mt-6 grid grid-cols-2 gap-4">
+    <button id="btnAddDebt" class="bg-blue-500 text-white py-4 rounded-xl font-medium text-lg">
+      <i class="fa fa-plus mr-1"></i>新增账单
     </button>
-    <button class="bg-white text-gray-700 py-3 rounded-xl font-medium border">
-      <i class="fa fa-bar-chart mr-1"></i>统计报表
+    <button id="btnViewBill" class="bg-white text-gray-700 py-4 rounded-xl font-medium text-lg border item-shadow">
+      <i class="fa fa-list mr-1"></i>查看账单
     </button>
   </div>
 
-  <!-- 弹窗遮罩 -->
-  <div id="mask" class="fixed inset-0 mask hidden z-50 flex items-center justify-center px-4">
+  <!-- 弹窗：新增账单（折叠展开式选择器） -->
+  <div id="mask" class="fixed inset-0 bg-black/45 hidden z-50 flex items-center justify-center px-4">
     <div class="bg-white w-full max-w-sm rounded-xl p-5">
-      <h3 id="modalTitle" class="text-lg font-bold mb-4">编辑负债</h3>
+      <h3 id="modalTitle" class="text-lg font-bold mb-4">新增账单</h3>
       <div class="space-y-3">
-        <div>
-          <label class="text-sm text-gray-600">名称</label>
-          <input id="nameInput" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="花呗">
+        <div id="typeRow">
+          <label class="text-sm text-gray-600">账单类型</label>
+          <div class="mt-1 border border-gray-200 rounded-lg overflow-hidden">
+            <div id="typeToggle" class="px-3 py-2 bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors">
+              <span id="selectedTypeName">请选择账单类型</span>
+              <i id="typeArrow" class="fa fa-caret-right text-gray-500"></i>
+            </div>
+            <div id="typePanel" class="hidden">
+              <div class="border-t border-gray-100">
+                <div class="type-item px-3 py-2 hover:bg-blue-50 cursor-pointer" data-val="huabei">花呗</div>
+                <div class="type-item px-3 py-2 hover:bg-green-50 cursor-pointer" data-val="fenfu">分付</div>
+                <div class="type-item px-3 py-2 hover:bg-orange-50 cursor-pointer" data-val="credit">信用卡</div>
+                <div class="type-item px-3 py-2 hover:bg-red-50 cursor-pointer" data-val="baitiao">白条</div>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="typeSelectVal">
         </div>
-        <div>
+        <div id="addMoneyRow">
+          <label class="text-sm text-gray-600">新增金额</label>
+          <input id="moneyInput" type="number" step="0.01" class="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 bg-gray-50 hover:bg-gray-100 transition-colors" placeholder="0.00">
+        </div>
+        <div id="editTotalRow" class="hidden">
           <label class="text-sm text-gray-600">总金额</label>
-          <input id="moneyInput" type="number" step="0.01" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="0.00">
+          <input id="editTotalInput" type="number" step="0.01" class="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 bg-gray-50 hover:bg-gray-100 transition-colors" placeholder="0.00">
         </div>
-        <div>
-          <label class="text-sm text-gray-600">当月待还</label>
-          <input id="monthPayInput" type="number" step="0.01" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="0.00">
+        <div id="editMonthRow" class="hidden">
+          <label class="text-sm text-gray-600">本月待还</label>
+          <input id="editMonthInput" type="number" step="0.01" class="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 bg-gray-50 hover:bg-gray-100 transition-colors" placeholder="0.00">
         </div>
-        <div>
-          <label class="text-sm text-gray-600">备注/还款日</label>
-          <input id="remarkInput" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="每月9号">
+        <div id="editRemarkRow" class="hidden">
+          <label class="text-sm text-gray-600">还款日备注</label>
+          <input id="editRemarkInput" class="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 bg-gray-50 hover:bg-gray-100 transition-colors" placeholder="还款日：每月20号">
         </div>
       </div>
       <div class="flex gap-3 mt-6">
-        <button id="btnCancel" class="flex-1 py-2 border rounded-lg text-gray-600">取消</button>
-        <button id="btnSave" class="flex-1 py-2 bg-blue-500 text-white rounded-lg">保存</button>
+        <button id="btnCancel" class="flex-1 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">取消</button>
+        <button id="btnSave" class="flex-1 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">保存</button>
       </div>
-      <button id="btnDel" class="w-full mt-3 py-2 text-red-500 text-sm">删除此项</button>
+    </div>
+  </div>
+
+  <!-- ✅ 美化后的查看账单弹窗 -->
+  <div id="billMask" class="fixed inset-0 bg-black/45 hidden z-50 flex items-center justify-center px-4">
+    <div class="bg-white w-full max-w-sm rounded-xl p-5 max-h-[80vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-5">
+        <h3 class="text-lg font-bold text-gray-800">账单明细</h3>
+        <button id="closeBill" class="text-gray-400 hover:text-gray-600 text-xl">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div id="billList" class="space-y-3">
+      </div>
     </div>
   </div>
 
 <script>
-// 默认初始数据
-const defaultData = [
-  {id:1,name:"花呗",money:5620.00,monthPay:0,remark:"还款日：每月9号",color:"huabei",icon:"fa-credit-card"},
-  {id:2,name:"分付",money:1240.50,monthPay:0,remark:"按日计息",color:"fenfu",icon:"fa-wechat"},
-  {id:3,name:"信用卡",money:4500.00,monthPay:0,remark:"还款日：每月25号",color:"credit",icon:"fa-bank"},
-  {id:4,name:"白条",money:1500.00,monthPay:0,remark:"还款日：每月20号",color:"baitiao",icon:"fa-shopping-cart"},
-];
-
-// 读取本地存储
-let debtList = JSON.parse(localStorage.getItem("debtData")) || defaultData;
-let currentEditId = null;
-
-// 颜色映射
-const colorMap = {
-  huabei:"#1677ff",fenfu:"#00b42a",credit:"#ff7d00",baitiao:"#f53f3f"
+const typeConfig = {
+  huabei: { name: "花呗", remark: "还款日：每月20号", icon: "fa-credit-card", color: "#1677ff" },
+  fenfu: { name: "分付", remark: "还款日：每月10号", icon: "fa-wechat", color: "#00b42a" },
+  credit: { name: "信用卡", remark: "还款日：每月4号", icon: "fa-bank", color: "#ff7d00" },
+  baitiao: { name: "白条", remark: "还款日：每月3号", icon: "fa-shopping-cart", color: "#f53f3f" }
 }
 
-// 渲染列表
-function render(){
+let billData = JSON.parse(localStorage.getItem("billData")) || {};
+Object.keys(typeConfig).forEach(key=>{
+  if(!billData[key]){
+    billData[key] = {
+      total: 0,
+      monthPay: 0,
+      remark: typeConfig[key].remark
+    }
+  }else if(!billData[key].remark){
+    billData[key].remark = typeConfig[key].remark
+  }
+})
+const initDefault = {
+  huabei: { total: 3796.93, monthPay: 1367.82, remark: typeConfig.huabei.remark },
+  fenfu: { total: 3483.18, monthPay: 0.00, remark: typeConfig.fenfu.remark },
+  credit: { total: 748.75, monthPay: 0.00, remark: typeConfig.credit.remark },
+  baitiao: { total: 419.85, monthPay: 0.00, remark: typeConfig.baitiao.remark }
+}
+if(Object.keys(billData).length === 0) billData = initDefault;
+
+let currentEditKey = null;
+let typePanelOpen = false;
+
+// 折叠选择器切换
+document.getElementById("typeToggle").onclick = function(){
+  typePanelOpen = !typePanelOpen;
+  const panel = document.getElementById("typePanel");
+  const arrow = document.getElementById("typeArrow");
+  if(typePanelOpen){
+    panel.classList.remove("hidden");
+    arrow.className = "fa fa-caret-down text-gray-500";
+  }else{
+    panel.classList.add("hidden");
+    arrow.className = "fa fa-caret-right text-gray-500";
+  }
+}
+document.querySelectorAll(".type-item").forEach(item=>{
+  item.onclick = function(e){
+    e.stopPropagation();
+    const val = this.dataset.val;
+    document.getElementById("typeSelectVal").value = val;
+    document.getElementById("selectedTypeName").innerText = this.innerText;
+    typePanelOpen = false;
+    document.getElementById("typePanel").classList.add("hidden");
+    document.getElementById("typeArrow").className = "fa fa-caret-right text-gray-500";
+  }
+})
+
+function render() {
   const wrap = document.getElementById("debtList");
   wrap.innerHTML = "";
   let total = 0;
-  let monthTotal = 0;
-  debtList.forEach(item=>{
-    total += Number(item.money);
-    monthTotal += Number(item.monthPay || 0);
+  let sumMonth = 0;
+  Object.keys(typeConfig).forEach(key => {
+    const cfg = typeConfig[key];
+    const item = billData[key];
+    total += Number(item.total);
+    sumMonth += Number(item.monthPay);
     const div = document.createElement("div");
-    div.className = "bg-white rounded-xl p-4 card-shadow flex items-start justify-between";
+    div.className = "bg-white rounded-xl p-4 item-shadow flex items-center justify-between";
     div.innerHTML = `
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:${colorMap[item.color]}15;color:${colorMap[item.color]}">
-          <i class="fa ${item.icon}"></i>
+        <div class="icon-bg" style="background:${cfg.color}15;color:${cfg.color}">
+          <i class="fa ${cfg.icon} text-lg"></i>
         </div>
         <div>
-          <p class="font-medium text-gray-800">${item.name}</p >
-          <p class="text-xs text-gray-400">${item.remark}</p >
+          <p class="font-medium text-gray-800">${cfg.name}</p>
+          <p class="text-xs text-gray-400">${item.remark}</p>
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-4 items-center ml-0 sm:ml-[-120px]">
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-500">总金额</span>
-          <p class="font-bold tabular-nums text-right w-[52px]" style="color:${colorMap[item.color]}">${Number(item.money).toFixed(2)}</p>
+      <div class="w-36 text-right">
+        <div class="flex justify-between text-sm text-gray-500">
+          <span>总金额</span>
+          <span class="font-bold" style="color:${cfg.color}">${Number(item.total).toFixed(2)}</span>
         </div>
-        <div class="flex items-center gap-4">
-          <span class="text-xs text-gray-400">本月待还</span>
-          <p class="font-bold tabular-nums text-right w-[52px] text-red-600">${Number(item.monthPay || 0).toFixed(2)}</p>
+        <div class="flex justify-between text-sm text-gray-500 mt-1">
+          <span>本月待还</span>
+          <span class="font-bold text-monthPay">${Number(item.monthPay).toFixed(2)}</span>
         </div>
       </div>
     `
-    div.onclick = ()=> openEdit(item.id);
+    div.onclick = () => openEdit(key);
     wrap.appendChild(div);
   })
-  // 更新汇总
-  document.getElementById("totalBill").innerText = total.toFixed(2);
-  document.getElementById("monthNeedPay").innerText = monthTotal.toFixed(2);
+  document.getElementById("totalDebt").innerText = total.toFixed(2);
+  document.getElementById("monthTotalPay").innerText = sumMonth.toFixed(2);
   saveStorage();
 }
 
-// 保存到本地
-function saveStorage(){
-  localStorage.setItem("debtData",JSON.stringify(debtList));
+function saveStorage() {
+  localStorage.setItem("billData", JSON.stringify(billData));
 }
 
-// 打开编辑弹窗
-function openEdit(id){
-  currentEditId = id;
-  const item = debtList.find(x=>x.id === id);
-  document.getElementById("modalTitle").innerText = "编辑负债";
-  document.getElementById("nameInput").value = item.name;
-  document.getElementById("moneyInput").value = item.money;
-  document.getElementById("monthPayInput").value = item.monthPay || "";
-  document.getElementById("remarkInput").value = item.remark;
-  document.getElementById("btnDel").classList.remove("hidden");
-  document.getElementById("mask").classList.remove("hidden");
-}
-
-// 打开新增弹窗
-function openAdd(){
-  currentEditId = null;
+function openAdd() {
+  currentEditKey = null;
   document.getElementById("modalTitle").innerText = "新增账单";
-  document.getElementById("nameInput").value = "";
+  document.getElementById("typeRow").classList.remove("hidden");
+  document.getElementById("addMoneyRow").classList.remove("hidden");
+  document.getElementById("editTotalRow").classList.add("hidden");
+  document.getElementById("editMonthRow").classList.add("hidden");
+  document.getElementById("editRemarkRow").classList.add("hidden");
+
+  document.getElementById("selectedTypeName").innerText = "请选择账单类型";
+  document.getElementById("typeSelectVal").value = "";
+  typePanelOpen = false;
+  document.getElementById("typePanel").classList.add("hidden");
+  document.getElementById("typeArrow").className = "fa fa-caret-right text-gray-500";
+
   document.getElementById("moneyInput").value = "";
-  document.getElementById("monthPayInput").value = "";
-  document.getElementById("remarkInput").value = "";
-  document.getElementById("btnDel").classList.add("hidden");
   document.getElementById("mask").classList.remove("hidden");
 }
 
-// 关闭弹窗
-function closeModal(){
+function openEdit(typeKey) {
+  currentEditKey = typeKey;
+  document.getElementById("modalTitle").innerText = "编辑账单";
+  document.getElementById("typeRow").classList.add("hidden");
+  document.getElementById("addMoneyRow").classList.add("hidden");
+  document.getElementById("editTotalRow").classList.remove("hidden");
+  document.getElementById("editMonthRow").classList.remove("hidden");
+  document.getElementById("editRemarkRow").classList.remove("hidden");
+
+  const item = billData[typeKey];
+  document.getElementById("editTotalInput").value = item.total;
+  document.getElementById("editMonthInput").value = item.monthPay;
+  document.getElementById("editRemarkInput").value = item.remark;
+  document.getElementById("mask").classList.remove("hidden");
+}
+
+function closeModal() {
   document.getElementById("mask").classList.add("hidden");
 }
 
-// 保存
-function saveItem(){
-  const name = document.getElementById("nameInput").value.trim();
-  const money = Number(document.getElementById("moneyInput").value);
-  const monthPay = Number(document.getElementById("monthPayInput").value);
-  const remark = document.getElementById("remarkInput").value.trim();
-  if(!name || isNaN(money) || money < 0){
-    alert("请填写合法名称和金额");
-    return;
-  }
-  if(currentEditId){
-    // 修改
-    const idx = debtList.findIndex(x=>x.id === currentEditId);
-    debtList[idx].name = name;
-    debtList[idx].money = money;
-    debtList[idx].monthPay = monthPay;
-    debtList[idx].remark = remark;
-  }else{
-    // 新增，随机颜色
-    const colorArr = ["huabei","fenfu","credit","baitiao"];
-    const iconArr = ["fa-credit-card","fa-wechat","fa-bank","fa-shopping-cart"];
-    const rnd = Math.floor(Math.random()*4);
-    const newId = Date.now();
-    debtList.push({
-      id:newId,
-      name,
-      money,
-      monthPay,
-      remark,
-      color:colorArr[rnd],
-      icon:iconArr[rnd]
-    })
+function saveItem() {
+  if (currentEditKey === null) {
+    const type = document.getElementById("typeSelectVal").value;
+    const addMoney = Number(document.getElementById("moneyInput").value);
+    if (!type || isNaN(addMoney) || addMoney <= 0) {
+      alert("请选择账单类型并填写合法金额");
+      return;
+    }
+    billData[type].total = Number(billData[type].total) + addMoney;
+  } else {
+    const newTotal = Number(document.getElementById("editTotalInput").value);
+    const newMonth = Number(document.getElementById("editMonthInput").value);
+    const newRemark = document.getElementById("editRemarkInput").value.trim();
+    if (isNaN(newTotal) || newTotal < 0 || isNaN(newMonth) || newMonth < 0) {
+      alert("请填写合法金额");
+      return;
+    }
+    billData[currentEditKey].total = newTotal;
+    billData[currentEditKey].monthPay = newMonth;
+    billData[currentEditKey].remark = newRemark;
   }
   closeModal();
   render();
 }
 
-// 删除
-function delItem(){
-  if(!currentEditId) return;
-  if(!confirm("确定删除这条负债？")) return;
-  debtList = debtList.filter(x=>x.id !== currentEditId);
-  closeModal();
-  render();
+// 渲染美化后的账单明细卡片
+function openViewBill() {
+  const listWrap = document.getElementById("billList");
+  listWrap.innerHTML = "";
+  Object.keys(typeConfig).forEach(key => {
+    const cfg = typeConfig[key];
+    const item = billData[key];
+    listWrap.innerHTML += `
+    <div class="bg-slate-50 rounded-xl p-4 flex items-center gap-4">
+      <div class="icon-bg" style="background:${cfg.color}15;color:${cfg.color}">
+        <i class="fa ${cfg.icon} text-lg"></i>
+      </div>
+      <div class="flex-1">
+        <div class="flex justify-between items-center">
+          <span class="font-medium text-gray-800">${cfg.name}</span>
+          <span class="font-bold" style="color:${cfg.color}">¥${Number(item.total).toFixed(2)}</span>
+        </div>
+        <div class="flex justify-between items-center mt-2">
+          <span class="text-xs text-gray-400">${item.remark}</span>
+          <span class="text-sm font-medium text-monthPay">本月待还 ¥${Number(item.monthPay).toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+    `
+  })
+  document.getElementById("billMask").classList.remove("hidden");
+}
+function closeBillMask() {
+  document.getElementById("billMask").classList.add("hidden");
 }
 
-// 绑定事件
 document.getElementById("btnAddDebt").onclick = openAdd;
 document.getElementById("btnCancel").onclick = closeModal;
 document.getElementById("btnSave").onclick = saveItem;
-document.getElementById("btnDel").onclick = delItem;
-document.getElementById("mask").onclick = (e)=>{
-  if(e.target.id === "mask") closeModal();
-}
+document.getElementById("btnViewBill").onclick = openViewBill;
+document.getElementById("closeBill").onclick = closeBillMask;
+document.getElementById("mask").onclick = (e) => { if (e.target.id === "mask") closeModal() }
+document.getElementById("billMask").onclick = (e) => { if (e.target.id === "billMask") closeBillMask() }
 
-// 初始化渲染
 render();
 </script>
 </body>
