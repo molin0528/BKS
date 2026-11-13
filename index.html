@@ -23,19 +23,11 @@
   </script>
   <style type="text/tailwindcss">
     @layer utilities {
-      .card-shadow {
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      }
-      .item-shadow {
-        box-shadow: 0 1px 8px rgba(0,0,0,0.05);
-      }
+      .card-shadow { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+      .item-shadow { box-shadow: 0 1px 8px rgba(0,0,0,0.05); }
       .icon-bg {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        width: 34px; height: 34px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
       }
     }
   </style>
@@ -61,8 +53,7 @@
   </div>
 
   <!-- 账单列表容器 -->
-  <div id="debtList" class="px-4 mt-5 space-y-3">
-  </div>
+  <div id="debtList" class="px-4 mt-5 space-y-3"></div>
 
   <!-- 底部按钮 -->
   <div class="px-4 mt-6 grid grid-cols-2 gap-4">
@@ -70,11 +61,11 @@
       <i class="fa fa-plus mr-1"></i>新增账单
     </button>
     <button id="btnViewBill" class="bg-white text-gray-700 py-4 rounded-xl font-medium text-lg border item-shadow">
-      <i class="fa fa-list mr-1"></i>查看账单
+      <i class="fa fa-calendar mr-1"></i>查看账单
     </button>
   </div>
 
-  <!-- 弹窗：新增账单（折叠展开式选择器） -->
+  <!-- 弹窗：新增/编辑账单 -->
   <div id="mask" class="fixed inset-0 bg-black/45 hidden z-50 flex items-center justify-center px-4">
     <div class="bg-white w-full max-w-sm rounded-xl p-5">
       <h3 id="modalTitle" class="text-lg font-bold mb-4">新增账单</h3>
@@ -121,16 +112,45 @@
     </div>
   </div>
 
-  <!-- ✅ 美化后的查看账单弹窗 -->
+  <!-- ✅ 查看账单（日历 + 当日流水） -->
   <div id="billMask" class="fixed inset-0 bg-black/45 hidden z-50 flex items-center justify-center px-4">
-    <div class="bg-white w-full max-w-sm rounded-xl p-5 max-h-[80vh] overflow-y-auto">
-      <div class="flex justify-between items-center mb-5">
-        <h3 class="text-lg font-bold text-gray-800">账单明细</h3>
+    <div class="bg-white w-full max-w-sm rounded-xl p-4 max-h-[88vh] flex flex-col">
+      <!-- 标题栏 -->
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-lg font-bold text-gray-800">账单日历</h3>
         <button id="closeBill" class="text-gray-400 hover:text-gray-600 text-xl">
           <i class="fa fa-times"></i>
         </button>
       </div>
-      <div id="billList" class="space-y-3">
+
+      <!-- 统计条 -->
+      <div class="bg-slate-50 rounded-lg px-3 py-2 flex justify-between items-center mb-3 text-sm">
+        <span class="text-gray-500">共 <b id="recCount" class="text-gray-800">0</b> 条记录</span>
+        <span class="text-gray-500">合计 <b id="recSum" class="text-gray-800">0.00</b></span>
+      </div>
+
+      <!-- 日历 -->
+      <div class="border border-gray-100 rounded-xl p-2.5">
+        <div class="flex justify-between items-center mb-2 px-1">
+          <button id="calPrev" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100">
+            <i class="fa fa-angle-left text-lg"></i>
+          </button>
+          <span id="calTitle" class="font-semibold text-gray-800 text-sm"></span>
+          <button id="calNext" class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100">
+            <i class="fa fa-angle-right text-lg"></i>
+          </button>
+        </div>
+        <div class="grid grid-cols-7 text-center text-[11px] text-gray-400 mb-1">
+          <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+        </div>
+        <div id="calGrid" class="grid grid-cols-7 gap-1"></div>
+        <div id="calMonthSum" class="text-[11px] text-gray-400 text-center mt-2"></div>
+      </div>
+
+      <!-- 当日流水 -->
+      <div class="mt-3 flex-1 overflow-y-auto">
+        <div id="dayTitle" class="text-sm font-medium text-gray-700 mb-2 px-1"></div>
+        <div id="billList" class="space-y-2"></div>
       </div>
     </div>
   </div>
@@ -146,27 +166,32 @@ const typeConfig = {
 let billData = JSON.parse(localStorage.getItem("billData")) || {};
 Object.keys(typeConfig).forEach(key=>{
   if(!billData[key]){
-    billData[key] = {
-      total: 0,
-      monthPay: 0,
-      remark: typeConfig[key].remark
-    }
+    billData[key] = { total: 0, monthPay: 0, remark: typeConfig[key].remark };
   }else if(!billData[key].remark){
-    billData[key].remark = typeConfig[key].remark
+    billData[key].remark = typeConfig[key].remark;
   }
 })
 const initDefault = {
   huabei: { total: 3796.93, monthPay: 1367.82, remark: typeConfig.huabei.remark },
-  fenfu: { total: 3483.18, monthPay: 0.00, remark: typeConfig.fenfu.remark },
-  credit: { total: 748.75, monthPay: 0.00, remark: typeConfig.credit.remark },
-  baitiao: { total: 419.85, monthPay: 0.00, remark: typeConfig.baitiao.remark }
+  fenfu:  { total: 3483.18, monthPay: 0.00, remark: typeConfig.fenfu.remark },
+  credit: { total: 748.75,  monthPay: 0.00, remark: typeConfig.credit.remark },
+  baitiao:{ total: 419.85,  monthPay: 0.00, remark: typeConfig.baitiao.remark }
 }
 if(Object.keys(billData).length === 0) billData = initDefault;
+
+let billRecords = JSON.parse(localStorage.getItem("billRecords")) || [];
 
 let currentEditKey = null;
 let typePanelOpen = false;
 
-// 折叠选择器切换
+// 日历状态
+let calYear, calMonth, selectedDate; // selectedDate: "YYYY-MM-DD"
+
+const pad = n => String(n).padStart(2,"0");
+const keyOf = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
+const todayKey = () => { const t = new Date(); return keyOf(t.getFullYear(), t.getMonth(), t.getDate()); };
+
+// ===== 折叠选择器 =====
 document.getElementById("typeToggle").onclick = function(){
   typePanelOpen = !typePanelOpen;
   const panel = document.getElementById("typePanel");
@@ -191,11 +216,11 @@ document.querySelectorAll(".type-item").forEach(item=>{
   }
 })
 
+// ===== 主页渲染 =====
 function render() {
   const wrap = document.getElementById("debtList");
   wrap.innerHTML = "";
-  let total = 0;
-  let sumMonth = 0;
+  let total = 0, sumMonth = 0;
   Object.keys(typeConfig).forEach(key => {
     const cfg = typeConfig[key];
     const item = billData[key];
@@ -223,7 +248,7 @@ function render() {
           <span class="font-bold text-monthPay">${Number(item.monthPay).toFixed(2)}</span>
         </div>
       </div>
-    `
+    `;
     div.onclick = () => openEdit(key);
     wrap.appendChild(div);
   })
@@ -234,8 +259,10 @@ function render() {
 
 function saveStorage() {
   localStorage.setItem("billData", JSON.stringify(billData));
+  localStorage.setItem("billRecords", JSON.stringify(billRecords));
 }
 
+// ===== 新增 / 编辑 =====
 function openAdd() {
   currentEditKey = null;
   document.getElementById("modalTitle").innerText = "新增账单";
@@ -275,6 +302,10 @@ function closeModal() {
   document.getElementById("mask").classList.add("hidden");
 }
 
+function formatTime(d){
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function saveItem() {
   if (currentEditKey === null) {
     const type = document.getElementById("typeSelectVal").value;
@@ -284,6 +315,21 @@ function saveItem() {
       return;
     }
     billData[type].total = Number(billData[type].total) + addMoney;
+
+    const now = new Date();
+    billRecords.push({
+      id: Date.now() + "_" + Math.random().toString(36).slice(2,7),
+      type: type,
+      amount: addMoney,
+      time: formatTime(now),
+      dateKey: keyOf(now.getFullYear(), now.getMonth(), now.getDate())
+    });
+
+    // 新记录落地到当天
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+    selectedDate = todayKey();
+
   } else {
     const newTotal = Number(document.getElementById("editTotalInput").value);
     const newMonth = Number(document.getElementById("editMonthInput").value);
@@ -300,37 +346,209 @@ function saveItem() {
   render();
 }
 
-// 渲染美化后的账单明细卡片
-function openViewBill() {
-  const listWrap = document.getElementById("billList");
-  listWrap.innerHTML = "";
-  Object.keys(typeConfig).forEach(key => {
-    const cfg = typeConfig[key];
-    const item = billData[key];
-    listWrap.innerHTML += `
-    <div class="bg-slate-50 rounded-xl p-4 flex items-center gap-4">
-      <div class="icon-bg" style="background:${cfg.color}15;color:${cfg.color}">
-        <i class="fa ${cfg.icon} text-lg"></i>
-      </div>
-      <div class="flex-1">
-        <div class="flex justify-between items-center">
-          <span class="font-medium text-gray-800">${cfg.name}</span>
-          <span class="font-bold" style="color:${cfg.color}">¥${Number(item.total).toFixed(2)}</span>
-        </div>
-        <div class="flex justify-between items-center mt-2">
-          <span class="text-xs text-gray-400">${item.remark}</span>
-          <span class="text-sm font-medium text-monthPay">本月待还 ¥${Number(item.monthPay).toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
-    `
+// ===== 流水按日期分组（兼容旧数据，没有 dateKey 就从 time 里取） =====
+function getDateKey(r){
+  if(r.dateKey) return r.dateKey;
+  if(r.time) return r.time.substring(0,10);
+  return "";
+}
+
+function recordsByDate(){
+  const map = {};
+  billRecords.forEach(r=>{
+    const k = getDateKey(r);
+    if(!k) return;
+    (map[k] = map[k] || []).push(r);
   })
+  return map;
+}
+
+// ===== 打开查看账单 =====
+function openViewBill() {
+  // 默认定位到今天；若本月无记录但有历史记录，跳到最近一条所在月份
+  const t = new Date();
+  calYear = t.getFullYear();
+  calMonth = t.getMonth();
+  selectedDate = todayKey();
+
+  const map = recordsByDate();
+  const hasThisMonth = Object.keys(map).some(k => k.startsWith(`${calYear}-${pad(calMonth+1)}`));
+  if(!hasThisMonth && billRecords.length > 0){
+    let latest = "";
+    billRecords.forEach(r=>{ const k = getDateKey(r); if(k > latest) latest = k; });
+    if(latest && latest.length >= 7){
+      calYear = Number(latest.substring(0,4));
+      calMonth = Number(latest.substring(5,7)) - 1;
+      selectedDate = latest;
+    }
+  }
+
+  renderCalendar();
   document.getElementById("billMask").classList.remove("hidden");
 }
+
+// ===== 日历渲染 =====
+function renderCalendar(){
+  const map = recordsByDate();
+  document.getElementById("calTitle").innerText = `${calYear}年${calMonth+1}月`;
+
+  // 顶部总统计
+  const sumAll = billRecords.reduce((s,r)=> s + Number(r.amount), 0);
+  document.getElementById("recCount").innerText = billRecords.length;
+  document.getElementById("recSum").innerText = "¥" + sumAll.toFixed(2);
+
+  // 本月合计
+  let monthSum = 0, monthCnt = 0;
+  Object.keys(map).forEach(k=>{
+    if(k.startsWith(`${calYear}-${pad(calMonth+1)}`)){
+      map[k].forEach(r=>{ monthSum += Number(r.amount); monthCnt++; });
+    }
+  })
+  document.getElementById("calMonthSum").innerText =
+    monthCnt > 0 ? `本月 ${monthCnt} 笔，合计 ¥${monthSum.toFixed(2)}` : "本月暂无账单记录";
+
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+
+  const firstWeekday = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+
+  const cells = [];
+  for(let i = firstWeekday - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, cur: false });
+  for(let d = 1; d <= daysInMonth; d++) cells.push({ day: d, cur: true });
+  let tail = (7 - (cells.length % 7)) % 7;
+  if(cells.length % 7 !== 0) tail = 7 - (cells.length % 7);
+  for(let i = 1; i <= tail; i++) cells.push({ day: i, cur: false });
+
+  cells.forEach(c=>{
+    const cell = document.createElement("div");
+    if(!c.cur){
+      cell.className = "h-12 flex flex-col items-center justify-center rounded-lg text-[11px] text-gray-300";
+      cell.innerHTML = `<span class="text-xs">${c.day}</span>`;
+      grid.appendChild(cell);
+      return;
+    }
+    const k = keyOf(calYear, calMonth, c.day);
+    const list = map[k] || [];
+    const daySum = list.reduce((s,r)=> s + Number(r.amount), 0);
+    const isToday = k === todayKey();
+    const isSelected = k === selectedDate;
+
+    let cls = "h-12 flex flex-col items-center justify-center rounded-lg cursor-pointer relative transition-colors ";
+    if(isSelected){
+      cls += "bg-blue-500 text-white";
+    }else{
+      cls += "text-gray-700 hover:bg-gray-100";
+    }
+
+    let amtHtml = "";
+    if(list.length > 0){
+      if(isSelected) amtHtml = `<span class="text-[10px] mt-0.5">${list.length}笔</span>`;
+      else amtHtml = `<span class="text-[10px] text-monthPay mt-0.5 font-medium">¥${daySum >= 1000 ? (daySum/1000).toFixed(1)+'k' : daySum.toFixed(0)}</span>`;
+    }else{
+      amtHtml = `<span class="text-[10px] mt-0.5 opacity-0">0</span>`;
+    }
+
+    cell.className = cls;
+    cell.innerHTML = `
+      <span class="text-xs leading-none ${isToday && !isSelected ? 'font-bold text-blue-500' : ''}">${c.day}</span>
+      ${amtHtml}
+    `;
+    cell.onclick = ()=>{
+      selectedDate = k;
+      renderCalendar();
+    };
+    grid.appendChild(cell);
+  });
+
+  renderDayRecords();
+}
+
+// ===== 当日流水 =====
+function renderDayRecords(){
+  const map = recordsByDate();
+  const list = (map[selectedDate] || []).slice().reverse();
+  const titleEl = document.getElementById("dayTitle");
+  const wrap = document.getElementById("billList");
+
+  const parts = selectedDate.split("-");
+  const daySum = list.reduce((s,r)=> s + Number(r.amount), 0);
+  titleEl.innerHTML = `${Number(parts[1])}月${Number(parts[2])}日 流水
+    <span class="text-gray-400 font-normal ml-1">${list.length} 笔 · ¥${daySum.toFixed(2)}</span>`;
+
+  wrap.innerHTML = "";
+  if(list.length === 0){
+    wrap.innerHTML = `
+      <div class="text-center text-gray-400 py-6 text-xs">
+        <i class="fa fa-calendar-o text-2xl mb-2 block text-gray-300"></i>
+        这天暂无账单记录
+      </div>`;
+    return;
+  }
+
+  list.forEach(r=>{
+    const cfg = typeConfig[r.type] || { name:"其他", icon:"fa-file-text-o", color:"#909399" };
+    const timeOnly = (r.time || "").substring(11) || "--:--";
+    wrap.innerHTML += `
+      <div class="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+        <div class="icon-bg flex-shrink-0" style="background:${cfg.color}15;color:${cfg.color}">
+          <i class="fa ${cfg.icon}"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-center">
+            <span class="font-medium text-gray-800 text-sm">${cfg.name}</span>
+            <span class="font-bold text-sm" style="color:${cfg.color}">+¥${Number(r.amount).toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between items-center mt-1">
+            <span class="text-xs text-gray-400">${timeOnly}</span>
+            <button onclick="delRecord('${r.id}')" class="text-xs text-gray-400 hover:text-red-500 px-1">
+              <i class="fa fa-trash-o mr-1"></i>删除
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// 删除流水：同步回退总额
+function delRecord(id){
+  if(!confirm("删除这条记录？对应总额也会同步减少")) return;
+  const idx = billRecords.findIndex(r => r.id === id);
+  if(idx === -1) return;
+  const r = billRecords[idx];
+  billData[r.type].total = Math.max(0, Number(billData[r.type].total) - Number(r.amount));
+  billRecords.splice(idx,1);
+  render();
+  renderCalendar();
+}
+
 function closeBillMask() {
   document.getElementById("billMask").classList.add("hidden");
 }
 
+// 月份切换
+document.getElementById("calPrev").onclick = ()=>{
+  calMonth--;
+  if(calMonth < 0){ calMonth = 11; calYear--; }
+  const map = recordsByDate();
+  const monthPrefix = `${calYear}-${pad(calMonth+1)}`;
+  const firstKey = Object.keys(map).filter(k=>k.startsWith(monthPrefix)).sort()[0];
+  selectedDate = firstKey || `${monthPrefix}-01`;
+  renderCalendar();
+}
+document.getElementById("calNext").onclick = ()=>{
+  calMonth++;
+  if(calMonth > 11){ calMonth = 0; calYear++; }
+  const map = recordsByDate();
+  const monthPrefix = `${calYear}-${pad(calMonth+1)}`;
+  const firstKey = Object.keys(map).filter(k=>k.startsWith(monthPrefix)).sort()[0];
+  selectedDate = firstKey || `${monthPrefix}-01`;
+  renderCalendar();
+}
+
+// 绑定事件
 document.getElementById("btnAddDebt").onclick = openAdd;
 document.getElementById("btnCancel").onclick = closeModal;
 document.getElementById("btnSave").onclick = saveItem;
